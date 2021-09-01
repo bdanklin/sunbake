@@ -23,4 +23,3 @@ end
 
 ## Credits
 Most of the code was adapted from the [Nostrum package](https://github.com/kraigie/nostrum).
-```
