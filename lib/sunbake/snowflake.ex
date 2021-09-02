@@ -64,6 +64,15 @@ defmodule Sunbake.Snowflake do
     {:ok, cast!(id)}
   end
 
+  def load(id) when is_binary(id) do
+    {:ok,
+     id
+     |> Integer.parse()
+     |> Tuple.to_list()
+     |> List.first()
+     |> cast!()}
+  end
+
   @doc """
   Convers an elxiir %DateTime{} into its snowflake form.
 
