@@ -4,7 +4,7 @@ defmodule Sunbake.MixProject do
   def project do
     [
       app: :sunbake,
-      version: "0.2.0",
+      version: "0.2.1",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       description: description(),
