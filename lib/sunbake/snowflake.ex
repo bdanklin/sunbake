@@ -6,6 +6,7 @@ defmodule Sunbake.Snowflake do
   use Ecto.Type
   @discord_epoch 1_420_070_400_000
 
+  @type t :: 0..0xFFFFFFFFFFFFFFFF
   defguard is_snowflake(term) when is_integer(term) and term in 0..0xFFFFFFFFFFFFFFFF
   def type, do: :id
 
