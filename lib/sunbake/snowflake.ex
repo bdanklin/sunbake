@@ -1,27 +1,36 @@
 defmodule Sunbake.Snowflake do
+  @discord_epoch 1_420_070_400_000
   @moduledoc """
-  Snowflakes
+  Module for assisting with Discord Snowflakes.
   """
   use Bitwise, only_operators: true
   use Ecto.Type
-  @discord_epoch 1_420_070_400_000
-
+  use Unsafe.Generator, handler: :unwrap, docs: false
   @type t :: 0..0xFFFFFFFFFFFFFFFF
+
   defguard is_snowflake(term) when is_integer(term) and term in 0..0xFFFFFFFFFFFFFFFF
-  def type, do: :id
+
+  @spec type :: :integer
+  def type, do: :integer
 
   @doc """
   Cast the integer to its snowflake representation.
 
     ## Examples
 
-        iex> Sunbake.cast(381887113391505410)
+        iex> Sunbake.Snowflake.cast(381887113391505410)
         {:ok, 381887113391505410}
+
+        iex> Sunbake.Snowflake.cast("381887113391505410")
+        {:ok, 381887113391505410}
+
+        iex> Sunbake.Snowflake.cast(DateTime.now())
 
         iex> Sunbake.cast("bad_value")
         :error
 
   """
+  @unsafe {:cast, [:value]}
   def cast(value)
   def cast(nil), do: {:ok, nil}
   def cast(value) when is_snowflake(value), do: {:ok, value}
@@ -33,34 +42,34 @@ defmodule Sunbake.Snowflake do
     end
   end
 
-  def cast(_), do: :error
+  def cast(%DateTime{} = datetime) do
+    use Bitwise
+    unix_time_ms = DateTime.to_unix(datetime, :millisecond)
+    discord_time_ms = unix_time_ms - @discord_epoch
 
-  @doc """
-  Banged version of `cast/1`.
-  """
-  def cast!(value) do
-    cast(value) |> bangify!()
+    if discord_time_ms >= 0 do
+      {:ok, discord_time_ms <<< 22}
+    else
+      :error
+    end
   end
+
+  def cast(_), do: :error
 
   @doc """
   Dumps a string version of the snowflake
 
   ## Examples
 
-      iex> Sunbake.dump(381887113391505410)
-      {:ok, "381887113391505410"}
+      iex> Sunbake.Snowflake.dump(381887113391505410)
+      {:ok, 381887113391505410}
 
   """
+  @unsafe {:dump, [:snowflake]}
   def dump(snowflake) when is_snowflake(snowflake), do: {:ok, to_string(snowflake)}
 
-  @doc """
-  Loads the underlying type into the snowflake type
-
-  ## Examples
-
-      iex> Sunbake.load(381887113391505410)
-      {:ok, 381887113391505410}
-  """
+  @doc false
+  @unsafe {:load, [:id]}
   def load(id) when is_integer(id) do
     {:ok, cast!(id)}
   end
@@ -69,8 +78,7 @@ defmodule Sunbake.Snowflake do
     {:ok,
      id
      |> Integer.parse()
-     |> Tuple.to_list()
-     |> List.first()
+     |> elem(0)
      |> cast!()}
   end
 
@@ -81,42 +89,16 @@ defmodule Sunbake.Snowflake do
 
     ## Examples
 
-        iex> DateTime.now!("Etc/UTC")
-        ...> Sunbake.from_datetime()
+        iex> DateTime.now!("Etc/UTC") |> Sunbake.Snowflake.from_datetime()
         "381887113391505410"
-  """
-  def from_datetime(%DateTime{} = datetime) do
-    discord_time_ms = DateTime.to_unix(datetime, :millisecond) - @discord_epoch
 
-    if discord_time_ms >= 0 do
-      {:ok, discord_time_ms <<< 22}
-    else
-      :error
-    end
-  end
-
-  @doc """
-  Banged version of `from_datetime/1`
   """
-  @spec from_datetime!(DateTime.t()) :: nil | integer
-  def from_datetime!(datetime) do
-    from_datetime(datetime)
-    |> bangify!()
-  end
 
-  @doc """
-  Opposite of `from_datetime/1`
-  """
   def to_datetime(snowflake) when is_snowflake(snowflake) do
-    snowflake
-    |> to_elapsed()
+    ((snowflake >>> 22) + @discord_epoch)
     |> DateTime.from_unix!(:millisecond)
   end
 
-  defp bangify!({:ok, term}), do: term
-  defp bangify!(:error), do: raise(ArgumentError)
-
-  defp to_elapsed(snowflake) when is_snowflake(snowflake) do
-    snowflake >>> (22 + @discord_epoch)
-  end
+  defp unwrap({:ok, body}), do: body
+  defp unwrap({:error, _}), do: raise(ArgumentError)
 end

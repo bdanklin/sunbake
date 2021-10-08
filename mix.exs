@@ -4,7 +4,7 @@ defmodule Sunbake.MixProject do
   def project do
     [
       app: :sunbake,
-      version: "0.2.3",
+      version: "0.2.4",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -23,8 +23,9 @@ defmodule Sunbake.MixProject do
 
   defp deps do
     [
+      {:ex_doc, "~> 0.25.1", only: :dev, runtime: false},
       {:ecto, "~> 3.7"},
-      {:ex_doc, "~> 0.25.1", only: :dev, runtime: false}
+      {:unsafe, "~> 1.0"}
     ]
   end
 
